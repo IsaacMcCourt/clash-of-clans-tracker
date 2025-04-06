@@ -164,6 +164,15 @@ body {
   background-color: #c0392b;
 }
 
+.btn-success {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #4caf50;
+}
+
 /* Dashboard Styles */
 .dashboard {
   width: 100%;
@@ -228,6 +237,17 @@ body {
   display: flex;
   justify-content: space-between;
   margin-top: 1rem;
+}
+
+.account-secondary-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+.account-secondary-actions .btn {
+  width: 100%;
+  max-width: 200px;
 }
 
 /* Form Styles */

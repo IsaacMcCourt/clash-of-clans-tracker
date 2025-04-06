@@ -166,6 +166,63 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     setTimerFormData({ days: 0, hours: 0, minutes: 0 });
   };
 
+  const handleClearCompletedUpgrades = (account: Account) => {
+    const now = new Date();
+    let updatedAccount = { ...account };
+    let hasCompletedUpgrades = false;
+
+    // Clear completed main village builders
+    updatedAccount.mainVillageBuilders = updatedAccount.mainVillageBuilders.map(builder => {
+      if (builder.inUse && builder.endTime && new Date(builder.endTime) <= now) {
+        hasCompletedUpgrades = true;
+        return { ...builder, inUse: false, endTime: null };
+      }
+      return builder;
+    });
+
+    // Clear completed builder base builders
+    updatedAccount.builderBaseBuilders = updatedAccount.builderBaseBuilders.map(builder => {
+      if (builder.inUse && builder.endTime && new Date(builder.endTime) <= now) {
+        hasCompletedUpgrades = true;
+        return { ...builder, inUse: false, endTime: null };
+      }
+      return builder;
+    });
+
+    // Clear completed main village lab
+    if (updatedAccount.mainVillageLab.inUse && 
+        updatedAccount.mainVillageLab.endTime && 
+        new Date(updatedAccount.mainVillageLab.endTime) <= now) {
+      hasCompletedUpgrades = true;
+      updatedAccount.mainVillageLab = {
+        ...updatedAccount.mainVillageLab,
+        inUse: false,
+        endTime: null
+      };
+    }
+
+    // Clear completed builder base lab
+    if (updatedAccount.builderBaseLab.inUse && 
+        updatedAccount.builderBaseLab.endTime && 
+        new Date(updatedAccount.builderBaseLab.endTime) <= now) {
+      hasCompletedUpgrades = true;
+      updatedAccount.builderBaseLab = {
+        ...updatedAccount.builderBaseLab,
+        inUse: false,
+        endTime: null
+      };
+    }
+
+    if (!hasCompletedUpgrades) {
+      alert('No completed upgrades to clear for this account.');
+      return;
+    }
+
+    // Update the account in storage
+    const updatedAccounts = updateAccount(updatedAccount);
+    setAccounts(updatedAccounts);
+  };
+
   return (
     <div className="dashboard">
       <div className="dashboard-header">
@@ -213,6 +270,16 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                     className="btn btn-danger"
                   >
                     Delete
+                  </button>
+                </div>
+                
+                <div className="account-secondary-actions">
+                  <button
+                    className="btn btn-success"
+                    onClick={() => handleClearCompletedUpgrades(account)}
+                    title="Clear all completed upgrades"
+                  >
+                    Clear Completed
                   </button>
                 </div>
 
