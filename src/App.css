@@ -505,6 +505,11 @@ body {
   font-weight: 500;
 }
 
+.timer-complete {
+  color: var(--success-color);
+  font-weight: 700;
+}
+
 /* Loading State */
 .loading {
   text-align: center;

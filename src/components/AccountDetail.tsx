@@ -3,6 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Account, Builder, Laboratory, AccountConfig } from '../types';
 import { updateAccount, updateAccountConfig } from '../utils/storageUtils';
 import { formatRemainingTime, calculateEndTime } from '../utils/timeUtils';
+import { useRealTimeTimer } from '../utils/useRealTimeTimer';
+
+// Real-time timer component
+const RealTimeTimer = ({ endTime }: { endTime: string | null }) => {
+  const [remainingTime, isComplete] = useRealTimeTimer(endTime);
+  return <span className={isComplete ? 'timer-complete' : ''}>{remainingTime || 'Available'}</span>;
+};
 
 interface AccountDetailProps {
   accounts: Account[];
@@ -321,7 +328,7 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
                     {builder.inUse ? (
                       <>
                         <span className="status-label">Time left:</span>
-                        <span className="status-value">{formatRemainingTime(builder.endTime)}</span>
+                        <span className="status-value"><RealTimeTimer endTime={builder.endTime} /></span>
                       </>
                     ) : (
                       <span className="status-value">Available</span>
@@ -344,7 +351,7 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
                   {account.mainVillageLab.inUse ? (
                     <>
                       <span className="status-label">Time left:</span>
-                      <span className="status-value">{formatRemainingTime(account.mainVillageLab.endTime)}</span>
+                      <span className="status-value"><RealTimeTimer endTime={account.mainVillageLab.endTime} /></span>
                     </>
                   ) : (
                     <span className="status-value">Available</span>
@@ -376,7 +383,7 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
                     {builder.inUse ? (
                       <>
                         <span className="status-label">Time left:</span>
-                        <span className="status-value">{formatRemainingTime(builder.endTime)}</span>
+                        <span className="status-value"><RealTimeTimer endTime={builder.endTime} /></span>
                       </>
                     ) : (
                       <span className="status-value">Available</span>
@@ -399,7 +406,7 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
                   {account.builderBaseLab.inUse ? (
                     <>
                       <span className="status-label">Time left:</span>
-                      <span className="status-value">{formatRemainingTime(account.builderBaseLab.endTime)}</span>
+                      <span className="status-value"><RealTimeTimer endTime={account.builderBaseLab.endTime} /></span>
                     </>
                   ) : (
                     <span className="status-value">Available</span>

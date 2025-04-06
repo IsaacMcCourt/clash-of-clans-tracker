@@ -3,6 +3,13 @@ import { Link } from 'react-router-dom';
 import { Account, Builder, Laboratory } from '../types';
 import { deleteAccount, updateAccount } from '../utils/storageUtils';
 import { formatRemainingTime, calculateEndTime } from '../utils/timeUtils';
+import { useRealTimeTimer } from '../utils/useRealTimeTimer';
+
+// Real-time timer component
+const RealTimeTimer = ({ endTime }: { endTime: string | null }) => {
+  const [remainingTime, isComplete] = useRealTimeTimer(endTime);
+  return <span className={isComplete ? 'timer-complete' : ''}>{remainingTime || 'None'}</span>;
+};
 
 interface DashboardProps {
   accounts: Account[];
@@ -473,9 +480,180 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     );
   };
 
+  // Get the next earliest end time for an account
+  const getNextEndTime = (account: Account): string | null => {
+    const now = new Date();
+    const endTimes: string[] = [];
+    
+    // Collect all active end times that haven't completed yet
+    account.mainVillageBuilders.forEach(builder => {
+      if (builder.inUse && builder.endTime && new Date(builder.endTime) > now) {
+        endTimes.push(builder.endTime);
+      }
+    });
+    
+    account.builderBaseBuilders.forEach(builder => {
+      if (builder.inUse && builder.endTime && new Date(builder.endTime) > now) {
+        endTimes.push(builder.endTime);
+      }
+    });
+    
+    if (account.config?.hasMainVillageLab && 
+        account.mainVillageLab.inUse && 
+        account.mainVillageLab.endTime && 
+        new Date(account.mainVillageLab.endTime) > now) {
+      endTimes.push(account.mainVillageLab.endTime);
+    }
+    
+    if (account.config?.hasBuilderBaseLab && 
+        account.builderBaseLab.inUse && 
+        account.builderBaseLab.endTime && 
+        new Date(account.builderBaseLab.endTime) > now) {
+      endTimes.push(account.builderBaseLab.endTime);
+    }
+    
+    // Return the earliest end time, or null if no active timers
+    return endTimes.length > 0 
+      ? new Date(Math.min(...endTimes.map(time => new Date(time).getTime()))).toISOString()
+      : null;
+  };
+
   // Next Completions Component
   const NextCompletionsSection = () => {
-    if (nextCompletions.length === 0) {
+    // First, get the latest next completions data
+    const [latestCompletions, setLatestCompletions] = useState<{
+      mainBuilder?: { accountName: string, endTime: string },
+      builderBaseBuilder?: { accountName: string, endTime: string },
+      mainLab?: { accountName: string, endTime: string },
+      builderBaseLab?: { accountName: string, endTime: string },
+      overallNext?: { accountName: string, endTime: string, displayName: string }
+    }>({});
+
+    // Effect to refresh the completions data
+    useEffect(() => {
+      const updateCompletions = () => {
+        const now = new Date();
+        const completions: NextCompletion[] = [];
+        
+        accounts.forEach(account => {
+          // Get the next main village builder to complete
+          const mainVillageBuilders = account.mainVillageBuilders
+            .filter(builder => builder.inUse && builder.endTime && new Date(builder.endTime) > now)
+            .sort((a, b) => {
+              if (!a.endTime || !b.endTime) return 0;
+              return new Date(a.endTime).getTime() - new Date(b.endTime).getTime();
+            });
+
+          if (mainVillageBuilders.length > 0 && mainVillageBuilders[0].endTime) {
+            completions.push({
+              endTime: mainVillageBuilders[0].endTime,
+              remainingTime: formatRemainingTime(mainVillageBuilders[0].endTime),
+              accountId: account.id,
+              accountName: account.name,
+              type: 'mainBuilder',
+              displayName: 'Main Village Builder'
+            });
+          }
+
+          // Get the next builder base builder to complete
+          const builderBaseBuilders = account.builderBaseBuilders
+            .filter(builder => builder.inUse && builder.endTime && new Date(builder.endTime) > now)
+            .sort((a, b) => {
+              if (!a.endTime || !b.endTime) return 0;
+              return new Date(a.endTime).getTime() - new Date(b.endTime).getTime();
+            });
+
+          if (builderBaseBuilders.length > 0 && builderBaseBuilders[0].endTime) {
+            completions.push({
+              endTime: builderBaseBuilders[0].endTime,
+              remainingTime: formatRemainingTime(builderBaseBuilders[0].endTime),
+              accountId: account.id,
+              accountName: account.name,
+              type: 'builderBaseBuilder',
+              displayName: 'Builder Base Builder'
+            });
+          }
+
+          // Check main village lab
+          if (account.config?.hasMainVillageLab && 
+              account.mainVillageLab.inUse && 
+              account.mainVillageLab.endTime && 
+              new Date(account.mainVillageLab.endTime) > now) {
+            completions.push({
+              endTime: account.mainVillageLab.endTime,
+              remainingTime: formatRemainingTime(account.mainVillageLab.endTime),
+              accountId: account.id,
+              accountName: account.name,
+              type: 'mainLab',
+              displayName: 'Main Village Lab'
+            });
+          }
+
+          // Check builder base lab
+          if (account.config?.hasBuilderBaseLab && 
+              account.builderBaseLab.inUse && 
+              account.builderBaseLab.endTime && 
+              new Date(account.builderBaseLab.endTime) > now) {
+            completions.push({
+              endTime: account.builderBaseLab.endTime,
+              remainingTime: formatRemainingTime(account.builderBaseLab.endTime),
+              accountId: account.id,
+              accountName: account.name,
+              type: 'builderBaseLab',
+              displayName: 'Builder Base Lab'
+            });
+          }
+        });
+
+        // Sort by earliest completion time
+        const sortedCompletions = completions.sort((a, b) => 
+          new Date(a.endTime).getTime() - new Date(b.endTime).getTime()
+        );
+
+        // Group by category
+        const byCategory = {
+          mainBuilder: sortedCompletions.filter(c => c.type === 'mainBuilder')[0],
+          builderBaseBuilder: sortedCompletions.filter(c => c.type === 'builderBaseBuilder')[0],
+          mainLab: sortedCompletions.filter(c => c.type === 'mainLab')[0],
+          builderBaseLab: sortedCompletions.filter(c => c.type === 'builderBaseLab')[0]
+        };
+
+        // Set the latest completions
+        setLatestCompletions({
+          mainBuilder: byCategory.mainBuilder && { 
+            accountName: byCategory.mainBuilder.accountName, 
+            endTime: byCategory.mainBuilder.endTime 
+          },
+          builderBaseBuilder: byCategory.builderBaseBuilder && { 
+            accountName: byCategory.builderBaseBuilder.accountName, 
+            endTime: byCategory.builderBaseBuilder.endTime 
+          },
+          mainLab: byCategory.mainLab && { 
+            accountName: byCategory.mainLab.accountName, 
+            endTime: byCategory.mainLab.endTime 
+          },
+          builderBaseLab: byCategory.builderBaseLab && { 
+            accountName: byCategory.builderBaseLab.accountName, 
+            endTime: byCategory.builderBaseLab.endTime 
+          },
+          overallNext: sortedCompletions.length > 0 ? {
+            accountName: sortedCompletions[0].accountName,
+            endTime: sortedCompletions[0].endTime,
+            displayName: sortedCompletions[0].displayName
+          } : undefined
+        });
+      };
+
+      // Initial update
+      updateCompletions();
+
+      // Set up interval to update data every 15 seconds
+      const interval = setInterval(updateCompletions, 15000);
+      
+      return () => clearInterval(interval);
+    }, [accounts]);
+
+    if (!latestCompletions.overallNext) {
       return (
         <div className="next-completions-section compact">
           <h3>Upcoming Completions</h3>
@@ -483,16 +661,6 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
         </div>
       );
     }
-
-    const overallNext = nextCompletions[0];
-    
-    // Group by category
-    const byCategory = {
-      mainBuilder: nextCompletions.filter(c => c.type === 'mainBuilder')[0],
-      builderBaseBuilder: nextCompletions.filter(c => c.type === 'builderBaseBuilder')[0],
-      mainLab: nextCompletions.filter(c => c.type === 'mainLab')[0],
-      builderBaseLab: nextCompletions.filter(c => c.type === 'builderBaseLab')[0]
-    };
 
     return (
       <div className="next-completions-section compact">
@@ -502,43 +670,53 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
           <div className="next-overall">
             <div className="completion-card highlight">
               <div className="completion-info">
-                <span className="completion-type">Next: {overallNext.displayName}</span>
-                <span className="completion-account">{overallNext.accountName}</span>
+                <span className="completion-type">Next: {latestCompletions.overallNext.displayName}</span>
+                <span className="completion-account">{latestCompletions.overallNext.accountName}</span>
               </div>
-              <div className="completion-time">{overallNext.remainingTime}</div>
+              <div className="completion-time">
+                <RealTimeTimer endTime={latestCompletions.overallNext.endTime} />
+              </div>
             </div>
           </div>
           
           <div className="category-completions">
-            {byCategory.mainBuilder && (
+            {latestCompletions.mainBuilder && (
               <div className="category-completion-item">
                 <span className="category-label">Main Builder:</span>
-                <span className="category-account">{byCategory.mainBuilder.accountName}</span>
-                <span className="category-time">{byCategory.mainBuilder.remainingTime}</span>
+                <span className="category-account">{latestCompletions.mainBuilder.accountName}</span>
+                <span className="category-time">
+                  <RealTimeTimer endTime={latestCompletions.mainBuilder.endTime} />
+                </span>
               </div>
             )}
             
-            {byCategory.builderBaseBuilder && (
+            {latestCompletions.builderBaseBuilder && (
               <div className="category-completion-item">
                 <span className="category-label">Builder Base:</span>
-                <span className="category-account">{byCategory.builderBaseBuilder.accountName}</span>
-                <span className="category-time">{byCategory.builderBaseBuilder.remainingTime}</span>
+                <span className="category-account">{latestCompletions.builderBaseBuilder.accountName}</span>
+                <span className="category-time">
+                  <RealTimeTimer endTime={latestCompletions.builderBaseBuilder.endTime} />
+                </span>
               </div>
             )}
             
-            {byCategory.mainLab && (
+            {latestCompletions.mainLab && (
               <div className="category-completion-item">
                 <span className="category-label">Main Lab:</span>
-                <span className="category-account">{byCategory.mainLab.accountName}</span>
-                <span className="category-time">{byCategory.mainLab.remainingTime}</span>
+                <span className="category-account">{latestCompletions.mainLab.accountName}</span>
+                <span className="category-time">
+                  <RealTimeTimer endTime={latestCompletions.mainLab.endTime} />
+                </span>
               </div>
             )}
             
-            {byCategory.builderBaseLab && (
+            {latestCompletions.builderBaseLab && (
               <div className="category-completion-item">
                 <span className="category-label">BB Lab:</span>
-                <span className="category-account">{byCategory.builderBaseLab.accountName}</span>
-                <span className="category-time">{byCategory.builderBaseLab.remainingTime}</span>
+                <span className="category-account">{latestCompletions.builderBaseLab.accountName}</span>
+                <span className="category-time">
+                  <RealTimeTimer endTime={latestCompletions.builderBaseLab.endTime} />
+                </span>
               </div>
             )}
           </div>
@@ -604,7 +782,14 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                   ) : (
                     <div className="stat">
                       <span className="stat-label">Next Completion:</span>
-                      <span className="stat-value">{nextCompletion || 'None'}</span>
+                      <span className="stat-value">
+                        {account.mainVillageBuilders.some(b => b.inUse) || 
+                         account.builderBaseBuilders.some(b => b.inUse) || 
+                         (account.config?.hasMainVillageLab && account.mainVillageLab.inUse) ||
+                         (account.config?.hasBuilderBaseLab && account.builderBaseLab.inUse) ? (
+                          <RealTimeTimer endTime={getNextEndTime(account)} />
+                        ) : 'None'}
+                      </span>
                     </div>
                   )}
                 </div>
