@@ -4,6 +4,7 @@ import { Account, Builder, Laboratory } from '../types';
 import { deleteAccount, updateAccount } from '../utils/storageUtils';
 import { formatRemainingTime, calculateEndTime } from '../utils/timeUtils';
 import { useRealTimeTimer } from '../utils/useRealTimeTimer';
+import { useNotifications } from '../contexts/NotificationContext';
 
 // Real-time timer component
 const RealTimeTimer = ({ endTime }: { endTime: string | null }) => {
@@ -44,6 +45,9 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
   });
   // State for tracking next completions
   const [nextCompletions, setNextCompletions] = useState<NextCompletion[]>([]);
+  
+  // Get notification context
+  const { checkAndTriggerNotifications } = useNotifications();
 
   // Effect to update next completions every minute
   useEffect(() => {
@@ -55,10 +59,18 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     const interval = setInterval(() => {
       const updatedCompletions = getNextCompletions(accounts);
       setNextCompletions(updatedCompletions);
+      
+      // Check for notifications
+      checkAndTriggerNotifications(accounts);
     }, 60000);
     
     return () => clearInterval(interval);
-  }, [accounts]);
+  }, [accounts, checkAndTriggerNotifications]);
+
+  // Additional check for notifications on mount and when accounts change
+  useEffect(() => {
+    checkAndTriggerNotifications(accounts);
+  }, [accounts, checkAndTriggerNotifications]);
 
   // Effect to check if any accounts have available upgrade options
   useEffect(() => {

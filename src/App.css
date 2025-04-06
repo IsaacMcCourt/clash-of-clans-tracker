@@ -165,6 +165,27 @@ body {
   text-align: center;
   padding: 1rem;
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.disclaimer {
+  font-size: 0.8rem;
+  opacity: 0.8;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.disclaimer a {
+  color: inherit;
+  text-decoration: underline;
+  transition: opacity 0.2s ease;
+}
+
+.disclaimer a:hover {
+  opacity: 1;
+  text-decoration: none;
 }
 
 /* Buttons */
@@ -756,7 +777,7 @@ body {
 
 .category-account {
   font-size: 0.85rem;
-  color: var(--secondary-color);
+  color: var (--secondary-color);
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 1;
@@ -848,16 +869,12 @@ body {
 
 /* Theme Toggle Switch Styles */
 .theme-toggle-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
   display: flex;
   align-items: center;
   background-color: var(--card-bg-color);
   border-radius: 30px;
   padding: 8px 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-  z-index: 1000;
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -932,4 +949,195 @@ body, .header, .footer, .account-card, .village-section, .selected-item-actions,
 .builder-card, .lab-card, .timer-status, .completion-card, .category-completion-item,
 .no-accounts, .promo-section {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Floating Controls Container */
+.floating-controls {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  z-index: 1000;
+}
+
+.floating-controls > * {
+  margin-left: 15px; /* Space between the controls */
+}
+
+/* Notification Settings Styles */
+.notification-settings-container {
+  position: relative;
+  z-index: 1002; /* Ensure this container has a higher z-index than both panel and theme toggle */
+}
+
+.notification-toggle-btn {
+  background-color: var(--card-bg-color);
+  border: none;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, background-color 0.3s;
+}
+
+.notification-toggle-btn:hover {
+  transform: scale(1.1);
+}
+
+.notification-icon {
+  font-size: 1.3rem;
+}
+
+.notification-settings-panel {
+  position: absolute;
+  bottom: 55px;
+  right: -10px; /* Adjust positioning to avoid overlap with theme toggle */
+  width: 300px;
+  background-color: var(--card-bg-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  z-index: 1001;
+}
+
+.notification-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid var(--card-border-color);
+}
+
+.notification-settings-header h3 {
+  margin: 0;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-color);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+}
+
+.notification-settings-content {
+  padding: 15px;
+}
+
+.notification-error,
+.notification-permission,
+.notification-info {
+  padding: 15px;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.notification-error p {
+  color: var(--danger-color);
+}
+
+.notification-permission {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.notification-info {
+  margin-top: 10px;
+  border-top: 1px solid var(--card-border-color);
+  padding-top: 15px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* Toggle Switch Styles */
+.switch-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .switch-slider {
+  background-color: var(--primary-color);
+}
+
+input:focus + .switch-slider {
+  box-shadow: 0 0 1px var(--primary-color);
+}
+
+input:checked + .switch-slider:before {
+  transform: translateX(20px);
+}
+
+input:disabled + .switch-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--card-border-color);
+  border-radius: 0.25rem;
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  margin-top: 5px;
+}
+
+.form-group select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
