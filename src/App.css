@@ -97,14 +97,27 @@ body {
   text-decoration: none;
 }
 
+.header nav {
+  display: flex;
+  align-items: center;
+}
+
 .header nav ul {
   display: flex;
   list-style: none;
   gap: 1.5rem;
+  align-items: center;
+  margin: 0;
 }
 
 .header nav ul li {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+}
+
+.header nav ul li a {
+  display: flex;
+  align-items: center;
 }
 
 /* Content Styles */

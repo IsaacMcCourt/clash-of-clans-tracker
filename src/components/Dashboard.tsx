@@ -626,15 +626,17 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                   </button>
                 </div>
                 
-                <div className="account-secondary-actions">
-                  <button
-                    className="btn btn-success"
-                    onClick={() => handleClearCompletedUpgrades(account)}
-                    title="Clear all completed upgrades"
-                  >
-                    Clear Completed
-                  </button>
-                </div>
+                {completedUpgrades > 0 && (
+                  <div className="account-secondary-actions">
+                    <button
+                      className="btn btn-success"
+                      onClick={() => handleClearCompletedUpgrades(account)}
+                      title="Clear all completed upgrades"
+                    >
+                      Clear Completed
+                    </button>
+                  </div>
+                )}
 
                 {expandedAccountId === account.id && (
                   <div className="quick-timer-form">
