@@ -42,8 +42,15 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     ];
     
     const activeBuilders = allBuilders.filter(builder => builder.inUse).length;
-    const activeLabsCount = (account.mainVillageLab.inUse ? 1 : 0) + 
-                          (account.builderBaseLab.inUse ? 1 : 0);
+    
+    // Only count labs that are enabled in config
+    const mainLabActive = account.config?.hasMainVillageLab && account.mainVillageLab.inUse ? 1 : 0;
+    const builderLabActive = account.config?.hasBuilderBaseLab && account.builderBaseLab.inUse ? 1 : 0;
+    const activeLabsCount = mainLabActive + builderLabActive;
+    
+    // Count total available labs based on configuration
+    const totalAvailableLabs = (account.config?.hasMainVillageLab ? 1 : 0) + 
+                              (account.config?.hasBuilderBaseLab ? 1 : 0);
     
     // Count completed upgrades (end time in the past but still marked as in-use)
     let completedUpgrades = 0;
@@ -62,15 +69,17 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
       }
     });
     
-    // Check main village lab
-    if (account.mainVillageLab.inUse && 
+    // Check main village lab - only if it's enabled in config
+    if (account.config?.hasMainVillageLab && 
+        account.mainVillageLab.inUse && 
         account.mainVillageLab.endTime && 
         new Date(account.mainVillageLab.endTime) <= now) {
       completedUpgrades++;
     }
     
-    // Check builder base lab
-    if (account.builderBaseLab.inUse && 
+    // Check builder base lab - only if it's enabled in config
+    if (account.config?.hasBuilderBaseLab && 
+        account.builderBaseLab.inUse && 
         account.builderBaseLab.endTime && 
         new Date(account.builderBaseLab.endTime) <= now) {
       completedUpgrades++;
@@ -81,10 +90,12 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
       ...allBuilders
         .filter(b => b.inUse && b.endTime && new Date(b.endTime) > now)
         .map(b => b.endTime),
-      account.mainVillageLab.inUse && account.mainVillageLab.endTime && new Date(account.mainVillageLab.endTime) > now 
+      account.config?.hasMainVillageLab && account.mainVillageLab.inUse && 
+        account.mainVillageLab.endTime && new Date(account.mainVillageLab.endTime) > now 
         ? account.mainVillageLab.endTime 
         : null,
-      account.builderBaseLab.inUse && account.builderBaseLab.endTime && new Date(account.builderBaseLab.endTime) > now 
+      account.config?.hasBuilderBaseLab && account.builderBaseLab.inUse && 
+        account.builderBaseLab.endTime && new Date(account.builderBaseLab.endTime) > now 
         ? account.builderBaseLab.endTime 
         : null
     ].filter(Boolean) as string[];
@@ -97,6 +108,7 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     return {
       activeBuilders,
       activeLabsCount,
+      totalAvailableLabs,
       nextCompletion: formatRemainingTime(nearestEndTime),
       completedUpgrades
     };
@@ -104,11 +116,17 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
 
   // Check availability of different builder/lab types in an account
   const getAvailability = (account: Account) => {
+    // No builders available if max count is 0 in config
+    const hasMainVillageBuilders = account.config?.maxMainVillageBuilders > 0;
+    const hasBuilderBaseBuilders = account.config?.maxBuilderBaseBuilders > 0;
+    
     return {
-      mainBuilder: account.mainVillageBuilders.some(builder => !builder.inUse),
-      mainLab: !account.mainVillageLab.inUse,
-      builderBaseBuilder: account.builderBaseBuilders.some(builder => !builder.inUse),
-      builderBaseLab: !account.builderBaseLab.inUse
+      // For builders, must have at least one builder available AND max count > 0
+      mainBuilder: hasMainVillageBuilders && account.mainVillageBuilders.some(builder => !builder.inUse),
+      // For labs, must have lab enabled in config AND not currently in use
+      mainLab: account.config?.hasMainVillageLab && !account.mainVillageLab.inUse,
+      builderBaseBuilder: hasBuilderBaseBuilders && account.builderBaseBuilders.some(builder => !builder.inUse),
+      builderBaseLab: account.config?.hasBuilderBaseLab && !account.builderBaseLab.inUse
     };
   };
 
@@ -139,6 +157,12 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
 
     switch (selectedTimerType) {
       case 'mainBuilder': {
+        // Check if main village builders are enabled in config
+        if (!account.config?.maxMainVillageBuilders) {
+          alert('Main village builders are disabled for this account');
+          return;
+        }
+        
         // Find the first available main village builder
         const availableBuilderIndex = updatedAccount.mainVillageBuilders.findIndex(
           builder => !builder.inUse
@@ -159,6 +183,12 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
       }
 
       case 'mainLab': {
+        // Check if main village lab is enabled in config
+        if (!account.config?.hasMainVillageLab) {
+          alert('Main village lab is disabled for this account');
+          return;
+        }
+        
         if (!updatedAccount.mainVillageLab.inUse) {
           updatedAccount.mainVillageLab = {
             ...updatedAccount.mainVillageLab,
@@ -173,6 +203,12 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
       }
 
       case 'builderBaseBuilder': {
+        // Check if builder base builders are enabled in config
+        if (!account.config?.maxBuilderBaseBuilders) {
+          alert('Builder base builders are disabled for this account');
+          return;
+        }
+        
         // Find the first available builder base builder
         const availableBuilderIndex = updatedAccount.builderBaseBuilders.findIndex(
           builder => !builder.inUse
@@ -193,6 +229,12 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
       }
 
       case 'builderBaseLab': {
+        // Check if builder base lab is enabled in config
+        if (!account.config?.hasBuilderBaseLab) {
+          alert('Builder base lab is disabled for this account');
+          return;
+        }
+        
         if (!updatedAccount.builderBaseLab.inUse) {
           updatedAccount.builderBaseLab = {
             ...updatedAccount.builderBaseLab,
@@ -298,7 +340,7 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                   </div>
                   <div className="stat">
                     <span className="stat-label">Active Labs:</span>
-                    <span className="stat-value">{activeLabsCount} / 2</span>
+                    <span className="stat-value">{activeLabsCount} / {account.config?.hasMainVillageLab && account.config?.hasBuilderBaseLab ? 2 : (account.config?.hasMainVillageLab || account.config?.hasBuilderBaseLab ? 1 : 0)}</span>
                   </div>
                   {completedUpgrades > 0 ? (
                     <div className="stat completed-upgrades">
@@ -450,22 +492,38 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                     <div className="timer-status">
                       {selectedTimerType === 'mainBuilder' && (
                         <div>
-                          <p>Main Village Builders: {account.mainVillageBuilders.filter(b => !b.inUse).length} available</p>
+                          {account.config?.maxMainVillageBuilders > 0 ? (
+                            <p>Main Village Builders: {account.mainVillageBuilders.filter(b => !b.inUse).length} available</p>
+                          ) : (
+                            <p className="unavailable-message">Main Village Builders are disabled for this account</p>
+                          )}
                         </div>
                       )}
                       {selectedTimerType === 'mainLab' && (
                         <div>
-                          <p>Main Village Lab: {account.mainVillageLab.inUse ? 'In use' : 'Available'}</p>
+                          {account.config?.hasMainVillageLab ? (
+                            <p>Main Village Lab: {account.mainVillageLab.inUse ? 'In use' : 'Available'}</p>
+                          ) : (
+                            <p className="unavailable-message">Main Village Lab is disabled for this account</p>
+                          )}
                         </div>
                       )}
                       {selectedTimerType === 'builderBaseBuilder' && (
                         <div>
-                          <p>Builder Base Builders: {account.builderBaseBuilders.filter(b => !b.inUse).length} available</p>
+                          {account.config?.maxBuilderBaseBuilders > 0 ? (
+                            <p>Builder Base Builders: {account.builderBaseBuilders.filter(b => !b.inUse).length} available</p>
+                          ) : (
+                            <p className="unavailable-message">Builder Base Builders are disabled for this account</p>
+                          )}
                         </div>
                       )}
                       {selectedTimerType === 'builderBaseLab' && (
                         <div>
-                          <p>Builder Base Lab: {account.builderBaseLab.inUse ? 'In use' : 'Available'}</p>
+                          {account.config?.hasBuilderBaseLab ? (
+                            <p>Builder Base Lab: {account.builderBaseLab.inUse ? 'In use' : 'Available'}</p>
+                          ) : (
+                            <p className="unavailable-message">Builder Base Lab is disabled for this account</p>
+                          )}
                         </div>
                       )}
                     </div>

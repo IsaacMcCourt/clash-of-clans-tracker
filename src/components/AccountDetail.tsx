@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Account, Builder, Laboratory } from '../types';
-import { updateAccount } from '../utils/storageUtils';
+import { Account, Builder, Laboratory, AccountConfig } from '../types';
+import { updateAccount, updateAccountConfig } from '../utils/storageUtils';
 import { formatRemainingTime, calculateEndTime } from '../utils/timeUtils';
 
 interface AccountDetailProps {
@@ -27,6 +27,8 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
     hours: 0,
     minutes: 0
   });
+  const [showConfigSection, setShowConfigSection] = useState(false);
+  const [accountConfig, setAccountConfig] = useState<AccountConfig | null>(null);
 
   // Update the display every minute to keep times current
   useEffect(() => {
@@ -45,6 +47,7 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
       const foundAccount = accounts.find(acc => acc.id === id);
       if (foundAccount) {
         setAccount(foundAccount);
+        setAccountConfig(foundAccount.config);
       } else {
         navigate('/');
       }
@@ -52,7 +55,7 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
   }, [id, accounts, navigate]);
 
   // If account is not found, show loading
-  if (!account) {
+  if (!account || !accountConfig) {
     return <div className="loading">Loading account...</div>;
   }
 
@@ -90,6 +93,16 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
     let updatedAccount = { ...account };
     
     if (selectedBuilder) {
+      // Check if the builder type is valid in the configuration
+      const isMainVillageBuilder = !selectedBuilder.name.includes('Builder Base');
+      const isBuilderBaseBuilder = selectedBuilder.name.includes('Builder Base');
+      
+      if ((isMainVillageBuilder && !account.config.maxMainVillageBuilders) || 
+          (isBuilderBaseBuilder && !account.config.maxBuilderBaseBuilders)) {
+        alert('This builder type is disabled in the account configuration');
+        return;
+      }
+      
       const updatedBuilders = selectedBuilder.name.includes('Builder Base')
         ? updatedAccount.builderBaseBuilders.map(b => 
             b.id === selectedBuilder.id ? { ...b, endTime, inUse: true } : b
@@ -106,6 +119,17 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
     }
     
     if (selectedLab) {
+      // Check if the lab is enabled in the configuration
+      if (selectedLab.id === account.mainVillageLab.id && !account.config.hasMainVillageLab) {
+        alert('Main Village Lab is disabled in the account configuration');
+        return;
+      }
+      
+      if (selectedLab.id === account.builderBaseLab.id && !account.config.hasBuilderBaseLab) {
+        alert('Builder Base Lab is disabled in the account configuration');
+        return;
+      }
+      
       if (selectedLab.id === account.mainVillageLab.id) {
         updatedAccount = { 
           ...updatedAccount, 
@@ -167,14 +191,117 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
     setSelectedLab(null);
   };
 
+  const handleConfigChange = (field: keyof AccountConfig, value: number | boolean) => {
+    if (!accountConfig) return;
+    
+    const updatedConfig = { ...accountConfig, [field]: value };
+    setAccountConfig(updatedConfig);
+  };
+
+  const handleSaveConfig = () => {
+    if (!account || !accountConfig || !id) return;
+    
+    const updatedAccounts = updateAccountConfig(id, accountConfig);
+    setAccounts(updatedAccounts);
+    
+    // Find the updated account in the accounts array
+    const updatedAccount = updatedAccounts.find(acc => acc.id === id);
+    if (updatedAccount) {
+      setAccount(updatedAccount);
+    }
+    
+    setShowConfigSection(false);
+  };
+
   return (
     <div className="account-detail">
       <div className="account-header">
         <h2>{account.name}</h2>
-        <button onClick={() => navigate('/')} className="btn btn-secondary">
-          Back to Dashboard
-        </button>
+        <div className="account-header-actions">
+          <button 
+            onClick={() => setShowConfigSection(!showConfigSection)} 
+            className="btn btn-primary"
+          >
+            {showConfigSection ? 'Hide Configuration' : 'Configure Account'}
+          </button>
+          <button onClick={() => navigate('/')} className="btn btn-secondary">
+            Back to Dashboard
+          </button>
+        </div>
       </div>
+
+      {showConfigSection && (
+        <section className="account-config-section">
+          <h3>Account Configuration</h3>
+          <p className="config-description">
+            Customize the number of available builders and labs for this account. 
+            Any changes will affect what upgraders are available in the dashboard dropdown.
+          </p>
+          
+          <div className="config-form">
+            <div className="config-group">
+              <label htmlFor="maxMainVillageBuilders">Main Village Builders:</label>
+              <input
+                id="maxMainVillageBuilders"
+                type="number"
+                min="0"
+                max="6"
+                value={accountConfig.maxMainVillageBuilders}
+                onChange={(e) => handleConfigChange('maxMainVillageBuilders', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            
+            <div className="config-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={accountConfig.hasMainVillageLab}
+                  onChange={(e) => handleConfigChange('hasMainVillageLab', e.target.checked)}
+                />
+                Main Village Lab Available
+              </label>
+            </div>
+            
+            <div className="config-group">
+              <label htmlFor="maxBuilderBaseBuilders">Builder Base Builders:</label>
+              <input
+                id="maxBuilderBaseBuilders"
+                type="number"
+                min="0"
+                max="2"
+                value={accountConfig.maxBuilderBaseBuilders}
+                onChange={(e) => handleConfigChange('maxBuilderBaseBuilders', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            
+            <div className="config-group">
+              <label>
+                <input
+                  type="checkbox"
+                  checked={accountConfig.hasBuilderBaseLab}
+                  onChange={(e) => handleConfigChange('hasBuilderBaseLab', e.target.checked)}
+                />
+                Builder Base Lab Available
+              </label>
+            </div>
+            
+            <div className="config-actions">
+              <button 
+                onClick={() => setShowConfigSection(false)} 
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveConfig} 
+                className="btn btn-primary"
+              >
+                Save Configuration
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
 
       <div className="account-sections">
         <section className="village-section">
@@ -207,22 +334,28 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
 
           <div className="lab-container">
             <h4>Laboratory</h4>
-            <div 
-              className={`lab-card ${account.mainVillageLab.inUse ? 'active' : ''} ${selectedLab?.id === account.mainVillageLab.id ? 'selected' : ''}`}
-              onClick={() => handleLabClick(account.mainVillageLab)}
-            >
-              <h5>Main Village Lab</h5>
-              <div className="status">
-                {account.mainVillageLab.inUse ? (
-                  <>
-                    <span className="status-label">Time left:</span>
-                    <span className="status-value">{formatRemainingTime(account.mainVillageLab.endTime)}</span>
-                  </>
-                ) : (
-                  <span className="status-value">Available</span>
-                )}
+            {account.config?.hasMainVillageLab ? (
+              <div 
+                className={`lab-card ${account.mainVillageLab.inUse ? 'active' : ''} ${selectedLab?.id === account.mainVillageLab.id ? 'selected' : ''}`}
+                onClick={() => handleLabClick(account.mainVillageLab)}
+              >
+                <h5>Main Village Lab</h5>
+                <div className="status">
+                  {account.mainVillageLab.inUse ? (
+                    <>
+                      <span className="status-label">Time left:</span>
+                      <span className="status-value">{formatRemainingTime(account.mainVillageLab.endTime)}</span>
+                    </>
+                  ) : (
+                    <span className="status-value">Available</span>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="lab-disabled">
+                <p className="unavailable-message">Main Village Lab is disabled for this account</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -256,22 +389,28 @@ const AccountDetail = ({ accounts, setAccounts }: AccountDetailProps) => {
 
           <div className="lab-container">
             <h4>Laboratory</h4>
-            <div 
-              className={`lab-card ${account.builderBaseLab.inUse ? 'active' : ''} ${selectedLab?.id === account.builderBaseLab.id ? 'selected' : ''}`}
-              onClick={() => handleLabClick(account.builderBaseLab)}
-            >
-              <h5>Builder Base Lab</h5>
-              <div className="status">
-                {account.builderBaseLab.inUse ? (
-                  <>
-                    <span className="status-label">Time left:</span>
-                    <span className="status-value">{formatRemainingTime(account.builderBaseLab.endTime)}</span>
-                  </>
-                ) : (
-                  <span className="status-value">Available</span>
-                )}
+            {account.config?.hasBuilderBaseLab ? (
+              <div 
+                className={`lab-card ${account.builderBaseLab.inUse ? 'active' : ''} ${selectedLab?.id === account.builderBaseLab.id ? 'selected' : ''}`}
+                onClick={() => handleLabClick(account.builderBaseLab)}
+              >
+                <h5>Builder Base Lab</h5>
+                <div className="status">
+                  {account.builderBaseLab.inUse ? (
+                    <>
+                      <span className="status-label">Time left:</span>
+                      <span className="status-value">{formatRemainingTime(account.builderBaseLab.endTime)}</span>
+                    </>
+                  ) : (
+                    <span className="status-value">Available</span>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="lab-disabled">
+                <p className="unavailable-message">Builder Base Lab is disabled for this account</p>
+              </div>
+            )}
           </div>
         </section>
       </div>

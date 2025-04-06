@@ -509,3 +509,81 @@ body {
 .completed-upgrades .stat-label {
   font-weight: 600;
 }
+
+/* Account Configuration Styles */
+.account-header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.account-config-section {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.account-config-section h3 {
+  color: var(--primary-color);
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.config-description {
+  margin-bottom: 1.5rem;
+  color: var(--secondary-color);
+  font-size: 0.95rem;
+}
+
+.config-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.config-group {
+  margin-bottom: 1rem;
+}
+
+.config-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.config-group input[type="number"] {
+  width: 80px;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+}
+
+.config-group input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+.config-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.unavailable-message {
+  color: #999;
+  font-style: italic;
+}
+
+.lab-disabled {
+  background-color: var(--light-color);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 2px solid #e6e8ec;
+  text-align: center;
+}
