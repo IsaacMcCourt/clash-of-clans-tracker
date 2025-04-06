@@ -137,7 +137,23 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
       setExpandedAccountId(accountId);
       // Reset form when selecting a new account
       setTimerFormData({ days: 0, hours: 0, minutes: 0 });
-      setSelectedTimerType('mainBuilder');
+      
+      // Check if there are any available upgraders for this account
+      const account = accounts.find(acc => acc.id === accountId);
+      if (account) {
+        const availability = getAvailability(account);
+        const hasAnyAvailable = Object.values(availability).some(available => available);
+        
+        // Only set a selected timer type if at least one upgrader is available
+        if (hasAnyAvailable) {
+          const types: TimerType[] = ['mainBuilder', 'mainLab', 'builderBaseBuilder', 'builderBaseLab'];
+          const firstAvailable = types.find(type => availability[type]) || 'mainBuilder';
+          setSelectedTimerType(firstAvailable);
+        } else {
+          // Default to mainBuilder even if not available - it will be disabled in the UI
+          setSelectedTimerType('mainBuilder');
+        }
+      }
     }
   };
 
@@ -335,12 +351,32 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                 <h3>{account.name}</h3>
                 <div className="account-stats">
                   <div className="stat">
-                    <span className="stat-label">Active Builders:</span>
-                    <span className="stat-value">{activeBuilders} / {account.mainVillageBuilders.length + account.builderBaseBuilders.length}</span>
+                    <span className="stat-label">Active Main Village Builders:</span>
+                    <span className="stat-value">
+                      {account.mainVillageBuilders.filter(b => b.inUse).length} / {account.mainVillageBuilders.length}
+                    </span>
                   </div>
                   <div className="stat">
-                    <span className="stat-label">Active Labs:</span>
-                    <span className="stat-value">{activeLabsCount} / {account.config?.hasMainVillageLab && account.config?.hasBuilderBaseLab ? 2 : (account.config?.hasMainVillageLab || account.config?.hasBuilderBaseLab ? 1 : 0)}</span>
+                    <span className="stat-label">Active Builder Base Builders:</span>
+                    <span className="stat-value">
+                      {account.builderBaseBuilders.filter(b => b.inUse).length} / {account.builderBaseBuilders.length}
+                    </span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat-label">Main Village Lab:</span>
+                    <span className="stat-value">
+                      {account.config?.hasMainVillageLab 
+                        ? (account.mainVillageLab.inUse ? '1' : '0') + ' / 1'
+                        : 'Disabled'}
+                    </span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat-label">Builder Base Lab:</span>
+                    <span className="stat-value">
+                      {account.config?.hasBuilderBaseLab 
+                        ? (account.builderBaseLab.inUse ? '1' : '0') + ' / 1'
+                        : 'Disabled'}
+                    </span>
                   </div>
                   {completedUpgrades > 0 ? (
                     <div className="stat completed-upgrades">
