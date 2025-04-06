@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Account, Builder, Laboratory } from '../types';
 import { deleteAccount, updateAccount } from '../utils/storageUtils';
@@ -25,6 +25,23 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     hours: 0,
     minutes: 0
   });
+
+  // Effect to check if any accounts have available upgrade options
+  useEffect(() => {
+    if (expandedAccountId) {
+      const account = accounts.find(acc => acc.id === expandedAccountId);
+      if (account) {
+        const availability = getAvailability(account);
+        // Check if any upgrader type is available
+        const hasAnyAvailable = Object.values(availability).some(available => available);
+        
+        // If no upgraders are available, close the quick timer form
+        if (!hasAnyAvailable) {
+          setExpandedAccountId(null);
+        }
+      }
+    }
+  }, [accounts, expandedAccountId]);
 
   const handleDeleteAccount = (id: string) => {
     if (window.confirm('Are you sure you want to delete this account?')) {
@@ -134,24 +151,25 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     if (expandedAccountId === accountId) {
       setExpandedAccountId(null);
     } else {
-      setExpandedAccountId(accountId);
-      // Reset form when selecting a new account
-      setTimerFormData({ days: 0, hours: 0, minutes: 0 });
-      
       // Check if there are any available upgraders for this account
       const account = accounts.find(acc => acc.id === accountId);
       if (account) {
         const availability = getAvailability(account);
         const hasAnyAvailable = Object.values(availability).some(available => available);
         
-        // Only set a selected timer type if at least one upgrader is available
+        // Only expand the account if there are available upgraders
         if (hasAnyAvailable) {
+          setExpandedAccountId(accountId);
+          // Reset form when selecting a new account
+          setTimerFormData({ days: 0, hours: 0, minutes: 0 });
+          
+          // Set selected timer type to the first available option
           const types: TimerType[] = ['mainBuilder', 'mainLab', 'builderBaseBuilder', 'builderBaseLab'];
           const firstAvailable = types.find(type => availability[type]) || 'mainBuilder';
           setSelectedTimerType(firstAvailable);
         } else {
-          // Default to mainBuilder even if not available - it will be disabled in the UI
-          setSelectedTimerType('mainBuilder');
+          // Show a message if all upgraders are in use
+          alert('All upgraders for this account are currently in use. Please wait for an upgrade to complete or clear completed upgrades.');
         }
       }
     }
@@ -271,6 +289,23 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
 
     // Reset form after adding timer
     setTimerFormData({ days: 0, hours: 0, minutes: 0 });
+    
+    // Check if any upgraders are still available
+    const updatedAvailability = getAvailability(updatedAccount);
+    const hasAnyAvailable = Object.values(updatedAvailability).some(available => available);
+    
+    // If no upgraders are available, show a message and close the form
+    if (!hasAnyAvailable) {
+      //alert('All upgraders are now in use. The upgrade form will be closed.');
+      setExpandedAccountId(null);
+    } else {
+      // Otherwise update the selected timer type to the next available type
+      const types: TimerType[] = ['mainBuilder', 'mainLab', 'builderBaseBuilder', 'builderBaseLab'];
+      const nextAvailable = types.find(type => updatedAvailability[type]);
+      if (nextAvailable) {
+        setSelectedTimerType(nextAvailable);
+      }
+    }
   };
 
   const handleClearCompletedUpgrades = (account: Account) => {
