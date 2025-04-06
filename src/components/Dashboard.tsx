@@ -759,7 +759,9 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                   <div className="stat">
                     <span className="stat-label">Active Main Village Builders:</span>
                     <span className="stat-value">
-                      {account.mainVillageBuilders.filter(b => b.inUse).length} / {account.mainVillageBuilders.length}
+                      {account.config?.maxMainVillageBuilders > 0 
+                        ? `${account.mainVillageBuilders.filter(b => b.inUse).length} / ${account.mainVillageBuilders.length}`
+                        : 'Disabled'}
                     </span>
                   </div>
                   <div className="stat">
