@@ -11,6 +11,13 @@ export interface Laboratory {
   inUse: boolean;
 }
 
+export interface AccountConfig {
+  maxMainVillageBuilders: number;
+  hasMainVillageLab: boolean;
+  maxBuilderBaseBuilders: number;
+  hasBuilderBaseLab: boolean;
+}
+
 export interface Account {
   id: string;
   name: string;
@@ -18,4 +25,5 @@ export interface Account {
   mainVillageLab: Laboratory;
   builderBaseBuilders: Builder[];
   builderBaseLab: Laboratory;
+  config: AccountConfig;
 }
