@@ -551,7 +551,6 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     <div className="dashboard">
       <div className="dashboard-header">
         <h2>Your Accounts</h2>
-        <Link to="/account/new" className="btn btn-primary">Add Account</Link>
       </div>
 
       {accounts.length > 0 && <NextCompletionsSection />}
