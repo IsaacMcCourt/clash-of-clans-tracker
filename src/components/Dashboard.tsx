@@ -17,6 +17,16 @@ interface TimerFormData {
   minutes: number;
 }
 
+// Interface for tracking next completions
+interface NextCompletion {
+  endTime: string;
+  remainingTime: string;
+  accountId: string;
+  accountName: string;
+  type: 'mainBuilder' | 'builderBaseBuilder' | 'mainLab' | 'builderBaseLab';
+  displayName: string;
+}
+
 const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
   const [expandedAccountId, setExpandedAccountId] = useState<string | null>(null);
   const [selectedTimerType, setSelectedTimerType] = useState<TimerType>('mainBuilder');
@@ -25,6 +35,23 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     hours: 0,
     minutes: 0
   });
+  // State for tracking next completions
+  const [nextCompletions, setNextCompletions] = useState<NextCompletion[]>([]);
+
+  // Effect to update next completions every minute
+  useEffect(() => {
+    // Initial calculation
+    const completions = getNextCompletions(accounts);
+    setNextCompletions(completions);
+
+    // Set up interval to update the remaining time every minute
+    const interval = setInterval(() => {
+      const updatedCompletions = getNextCompletions(accounts);
+      setNextCompletions(updatedCompletions);
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, [accounts]);
 
   // Effect to check if any accounts have available upgrade options
   useEffect(() => {
@@ -365,12 +392,169 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     setAccounts(updatedAccounts);
   };
 
+  // Get next completions across all accounts and categories
+  const getNextCompletions = (allAccounts: Account[]): NextCompletion[] => {
+    const now = new Date();
+    const completions: NextCompletion[] = [];
+
+    allAccounts.forEach(account => {
+      // Get the next main village builder to complete
+      const mainVillageBuilders = account.mainVillageBuilders
+        .filter(builder => builder.inUse && builder.endTime && new Date(builder.endTime) > now)
+        .sort((a, b) => {
+          if (!a.endTime || !b.endTime) return 0;
+          return new Date(a.endTime).getTime() - new Date(b.endTime).getTime();
+        });
+
+      if (mainVillageBuilders.length > 0 && mainVillageBuilders[0].endTime) {
+        completions.push({
+          endTime: mainVillageBuilders[0].endTime,
+          remainingTime: formatRemainingTime(mainVillageBuilders[0].endTime),
+          accountId: account.id,
+          accountName: account.name,
+          type: 'mainBuilder',
+          displayName: 'Main Village Builder'
+        });
+      }
+
+      // Get the next builder base builder to complete
+      const builderBaseBuilders = account.builderBaseBuilders
+        .filter(builder => builder.inUse && builder.endTime && new Date(builder.endTime) > now)
+        .sort((a, b) => {
+          if (!a.endTime || !b.endTime) return 0;
+          return new Date(a.endTime).getTime() - new Date(b.endTime).getTime();
+        });
+
+      if (builderBaseBuilders.length > 0 && builderBaseBuilders[0].endTime) {
+        completions.push({
+          endTime: builderBaseBuilders[0].endTime,
+          remainingTime: formatRemainingTime(builderBaseBuilders[0].endTime),
+          accountId: account.id,
+          accountName: account.name,
+          type: 'builderBaseBuilder',
+          displayName: 'Builder Base Builder'
+        });
+      }
+
+      // Check main village lab
+      if (account.config?.hasMainVillageLab && 
+          account.mainVillageLab.inUse && 
+          account.mainVillageLab.endTime && 
+          new Date(account.mainVillageLab.endTime) > now) {
+        completions.push({
+          endTime: account.mainVillageLab.endTime,
+          remainingTime: formatRemainingTime(account.mainVillageLab.endTime),
+          accountId: account.id,
+          accountName: account.name,
+          type: 'mainLab',
+          displayName: 'Main Village Lab'
+        });
+      }
+
+      // Check builder base lab
+      if (account.config?.hasBuilderBaseLab && 
+          account.builderBaseLab.inUse && 
+          account.builderBaseLab.endTime && 
+          new Date(account.builderBaseLab.endTime) > now) {
+        completions.push({
+          endTime: account.builderBaseLab.endTime,
+          remainingTime: formatRemainingTime(account.builderBaseLab.endTime),
+          accountId: account.id,
+          accountName: account.name,
+          type: 'builderBaseLab',
+          displayName: 'Builder Base Lab'
+        });
+      }
+    });
+
+    // Sort by earliest completion time
+    return completions.sort((a, b) => 
+      new Date(a.endTime).getTime() - new Date(b.endTime).getTime()
+    );
+  };
+
+  // Next Completions Component
+  const NextCompletionsSection = () => {
+    if (nextCompletions.length === 0) {
+      return (
+        <div className="next-completions-section compact">
+          <h3>Upcoming Completions</h3>
+          <p className="no-completions-message">No active upgrades. Add a timer to get started!</p>
+        </div>
+      );
+    }
+
+    const overallNext = nextCompletions[0];
+    
+    // Group by category
+    const byCategory = {
+      mainBuilder: nextCompletions.filter(c => c.type === 'mainBuilder')[0],
+      builderBaseBuilder: nextCompletions.filter(c => c.type === 'builderBaseBuilder')[0],
+      mainLab: nextCompletions.filter(c => c.type === 'mainLab')[0],
+      builderBaseLab: nextCompletions.filter(c => c.type === 'builderBaseLab')[0]
+    };
+
+    return (
+      <div className="next-completions-section compact">
+        <h3>Upcoming Completions</h3>
+        
+        <div className="completions-container">
+          <div className="next-overall">
+            <div className="completion-card highlight">
+              <div className="completion-info">
+                <span className="completion-type">Next: {overallNext.displayName}</span>
+                <span className="completion-account">{overallNext.accountName}</span>
+              </div>
+              <div className="completion-time">{overallNext.remainingTime}</div>
+            </div>
+          </div>
+          
+          <div className="category-completions">
+            {byCategory.mainBuilder && (
+              <div className="category-completion-item">
+                <span className="category-label">Main Builder:</span>
+                <span className="category-account">{byCategory.mainBuilder.accountName}</span>
+                <span className="category-time">{byCategory.mainBuilder.remainingTime}</span>
+              </div>
+            )}
+            
+            {byCategory.builderBaseBuilder && (
+              <div className="category-completion-item">
+                <span className="category-label">Builder Base:</span>
+                <span className="category-account">{byCategory.builderBaseBuilder.accountName}</span>
+                <span className="category-time">{byCategory.builderBaseBuilder.remainingTime}</span>
+              </div>
+            )}
+            
+            {byCategory.mainLab && (
+              <div className="category-completion-item">
+                <span className="category-label">Main Lab:</span>
+                <span className="category-account">{byCategory.mainLab.accountName}</span>
+                <span className="category-time">{byCategory.mainLab.remainingTime}</span>
+              </div>
+            )}
+            
+            {byCategory.builderBaseLab && (
+              <div className="category-completion-item">
+                <span className="category-label">BB Lab:</span>
+                <span className="category-account">{byCategory.builderBaseLab.accountName}</span>
+                <span className="category-time">{byCategory.builderBaseLab.remainingTime}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="dashboard">
       <div className="dashboard-header">
         <h2>Your Accounts</h2>
         <Link to="/account/new" className="btn btn-primary">Add Account</Link>
       </div>
+
+      {accounts.length > 0 && <NextCompletionsSection />}
 
       {accounts.length === 0 ? (
         <div className="no-accounts">
