@@ -763,7 +763,28 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
       ) : (
         <div className="account-grid">
           {accounts.map(account => {
+            // Force a recalculation of account summary on every render
+            // This ensures completedUpgrades count is always up-to-date
             const { activeBuilders, activeLabsCount, nextCompletion, completedUpgrades } = getAccountSummary(account);
+            
+            // Create a component to force rerender when timer completes
+            const AccountTimer = () => {
+              const endTime = getNextEndTime(account);
+              const [_, isComplete] = useRealTimeTimer(endTime);
+              
+              // Force rerender of parent when timer completes
+              useEffect(() => {
+                if (isComplete && endTime) {
+                  // Trigger parent rerender by making a shallow copy of accounts
+                  setAccounts([...accounts]);
+                }
+              }, [isComplete, endTime]);
+              
+              return (
+                <RealTimeTimer endTime={endTime} />
+              );
+            };
+            
             return (
               <div key={account.id} className="account-card">
                 <h3>{account.name}</h3>
@@ -813,7 +834,7 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                          account.builderBaseBuilders.some(b => b.inUse) || 
                          (account.config?.hasMainVillageLab && account.mainVillageLab.inUse) ||
                          (account.config?.hasBuilderBaseLab && account.builderBaseLab.inUse) ? (
-                          <RealTimeTimer endTime={getNextEndTime(account)} />
+                          <AccountTimer />
                         ) : 'None'}
                       </span>
                     </div>
