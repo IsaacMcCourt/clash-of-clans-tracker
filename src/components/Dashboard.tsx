@@ -412,28 +412,28 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                               disabled={!availability.mainBuilder}
                               className={!availability.mainBuilder ? 'disabled-option' : ''}
                             >
-                              Main Village Builder {!availability.mainBuilder ? '(None Available)' : ''}
+                              Main Village Builder {!account.config?.maxMainVillageBuilders ? '(Disabled)' : (!availability.mainBuilder ? '(None Available)' : '')}
                             </option>
                             <option 
                               value="mainLab"
                               disabled={!availability.mainLab}
                               className={!availability.mainLab ? 'disabled-option' : ''}
                             >
-                              Main Village Lab {!availability.mainLab ? '(In Use)' : ''}
+                              Main Village Lab {!account.config?.hasMainVillageLab ? '(Disabled)' : (!availability.mainLab ? '(In Use)' : '')}
                             </option>
                             <option 
                               value="builderBaseBuilder"
                               disabled={!availability.builderBaseBuilder}
                               className={!availability.builderBaseBuilder ? 'disabled-option' : ''}
                             >
-                              Builder Base Builder {!availability.builderBaseBuilder ? '(None Available)' : ''}
+                              Builder Base Builder {!account.config?.maxBuilderBaseBuilders ? '(Disabled)' : (!availability.builderBaseBuilder ? '(None Available)' : '')}
                             </option>
                             <option 
                               value="builderBaseLab"
                               disabled={!availability.builderBaseLab}
                               className={!availability.builderBaseLab ? 'disabled-option' : ''}
                             >
-                              Builder Base Lab {!availability.builderBaseLab ? '(In Use)' : ''}
+                              Builder Base Lab {!account.config?.hasBuilderBaseLab ? '(Disabled)' : (!availability.builderBaseLab ? '(In Use)' : '')}
                             </option>
                           </select>
                         );
