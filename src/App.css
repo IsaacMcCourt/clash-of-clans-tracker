@@ -488,3 +488,13 @@ body {
   font-size: 1.2rem;
   color: var(--secondary-color);
 }
+
+/* Completed Upgrades Styles */
+.completed-upgrades .stat-value {
+  color: var(--success-color);
+  font-weight: 700;
+}
+
+.completed-upgrades .stat-label {
+  font-weight: 600;
+}

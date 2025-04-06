@@ -33,8 +33,9 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     }
   };
 
-  // Count active builders and calculate next completion time
+  // Count active builders, calculate next completion time, and count completed upgrades
   const getAccountSummary = (account: Account) => {
+    const now = new Date();
     const allBuilders = [
       ...account.mainVillageBuilders,
       ...account.builderBaseBuilders
@@ -44,22 +45,60 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     const activeLabsCount = (account.mainVillageLab.inUse ? 1 : 0) + 
                           (account.builderBaseLab.inUse ? 1 : 0);
     
-    // Get all active end times
-    const endTimes = [
-      ...allBuilders.filter(b => b.inUse && b.endTime).map(b => b.endTime),
-      account.mainVillageLab.inUse && account.mainVillageLab.endTime ? account.mainVillageLab.endTime : null,
-      account.builderBaseLab.inUse && account.builderBaseLab.endTime ? account.builderBaseLab.endTime : null
+    // Count completed upgrades (end time in the past but still marked as in-use)
+    let completedUpgrades = 0;
+    
+    // Check main village builders
+    account.mainVillageBuilders.forEach(builder => {
+      if (builder.inUse && builder.endTime && new Date(builder.endTime) <= now) {
+        completedUpgrades++;
+      }
+    });
+    
+    // Check builder base builders
+    account.builderBaseBuilders.forEach(builder => {
+      if (builder.inUse && builder.endTime && new Date(builder.endTime) <= now) {
+        completedUpgrades++;
+      }
+    });
+    
+    // Check main village lab
+    if (account.mainVillageLab.inUse && 
+        account.mainVillageLab.endTime && 
+        new Date(account.mainVillageLab.endTime) <= now) {
+      completedUpgrades++;
+    }
+    
+    // Check builder base lab
+    if (account.builderBaseLab.inUse && 
+        account.builderBaseLab.endTime && 
+        new Date(account.builderBaseLab.endTime) <= now) {
+      completedUpgrades++;
+    }
+    
+    // Get all active end times that haven't completed yet
+    const futureEndTimes = [
+      ...allBuilders
+        .filter(b => b.inUse && b.endTime && new Date(b.endTime) > now)
+        .map(b => b.endTime),
+      account.mainVillageLab.inUse && account.mainVillageLab.endTime && new Date(account.mainVillageLab.endTime) > now 
+        ? account.mainVillageLab.endTime 
+        : null,
+      account.builderBaseLab.inUse && account.builderBaseLab.endTime && new Date(account.builderBaseLab.endTime) > now 
+        ? account.builderBaseLab.endTime 
+        : null
     ].filter(Boolean) as string[];
     
     // Find the nearest completion time
-    const nearestEndTime = endTimes.length > 0 
-      ? new Date(Math.min(...endTimes.map(time => new Date(time).getTime()))).toISOString()
+    const nearestEndTime = futureEndTimes.length > 0 
+      ? new Date(Math.min(...futureEndTimes.map(time => new Date(time).getTime()))).toISOString()
       : null;
     
     return {
       activeBuilders,
       activeLabsCount,
-      nextCompletion: formatRemainingTime(nearestEndTime)
+      nextCompletion: formatRemainingTime(nearestEndTime),
+      completedUpgrades
     };
   };
 
@@ -238,7 +277,7 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
       ) : (
         <div className="account-grid">
           {accounts.map(account => {
-            const { activeBuilders, activeLabsCount, nextCompletion } = getAccountSummary(account);
+            const { activeBuilders, activeLabsCount, nextCompletion, completedUpgrades } = getAccountSummary(account);
             return (
               <div key={account.id} className="account-card">
                 <h3>{account.name}</h3>
@@ -251,10 +290,17 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                     <span className="stat-label">Active Labs:</span>
                     <span className="stat-value">{activeLabsCount} / 2</span>
                   </div>
-                  <div className="stat">
-                    <span className="stat-label">Next Completion:</span>
-                    <span className="stat-value">{nextCompletion || 'None'}</span>
-                  </div>
+                  {completedUpgrades > 0 ? (
+                    <div className="stat completed-upgrades">
+                      <span className="stat-label">Completed:</span>
+                      <span className="stat-value">{completedUpgrades}</span>
+                    </div>
+                  ) : (
+                    <div className="stat">
+                      <span className="stat-label">Next Completion:</span>
+                      <span className="stat-value">{nextCompletion || 'None'}</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="account-actions">
