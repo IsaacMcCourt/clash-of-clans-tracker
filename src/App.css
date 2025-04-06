@@ -392,6 +392,75 @@ body {
   margin-bottom: 1.5rem;
 }
 
+/* Quick Timer Form Styles */
+.quick-timer-form {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.timer-type-selection {
+  margin-bottom: 1rem;
+}
+
+.timer-type-selection label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.timer-type-selection select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  font-size: 1rem;
+  background-color: white;
+}
+
+.timer-duration {
+  margin-bottom: 1rem;
+}
+
+.timer-duration .time-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.timer-duration .form-group {
+  margin-bottom: 0.5rem;
+}
+
+.timer-duration .form-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.timer-duration .form-group input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.timer-status {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: var(--light-color);
+  border-radius: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.timer-status p {
+  margin: 0;
+  font-weight: 500;
+}
+
 /* Loading State */
 .loading {
   text-align: center;
