@@ -102,6 +102,16 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
     };
   };
 
+  // Check availability of different builder/lab types in an account
+  const getAvailability = (account: Account) => {
+    return {
+      mainBuilder: account.mainVillageBuilders.some(builder => !builder.inUse),
+      mainLab: !account.mainVillageLab.inUse,
+      builderBaseBuilder: account.builderBaseBuilders.some(builder => !builder.inUse),
+      builderBaseLab: !account.builderBaseLab.inUse
+    };
+  };
+
   const toggleExpandAccount = (accountId: string) => {
     if (expandedAccountId === accountId) {
       setExpandedAccountId(null);
@@ -333,16 +343,59 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                   <div className="quick-timer-form">
                     <div className="timer-type-selection">
                       <label htmlFor={`timer-type-${account.id}`}>Timer Type:</label>
-                      <select 
-                        id={`timer-type-${account.id}`}
-                        value={selectedTimerType}
-                        onChange={(e) => setSelectedTimerType(e.target.value as TimerType)}
-                      >
-                        <option value="mainBuilder">Main Village Builder</option>
-                        <option value="mainLab">Main Village Lab</option>
-                        <option value="builderBaseBuilder">Builder Base Builder</option>
-                        <option value="builderBaseLab">Builder Base Lab</option>
-                      </select>
+                      {(() => {
+                        // Get availability for this account
+                        const availability = getAvailability(account);
+                        
+                        // Find first available option to use as default when current option is unavailable
+                        const findFirstAvailable = () => {
+                          const types: TimerType[] = ['mainBuilder', 'mainLab', 'builderBaseBuilder', 'builderBaseLab'];
+                          return types.find(type => availability[type]) || 'mainBuilder';
+                        };
+                        
+                        // If current selection is unavailable, switch to an available option
+                        if (!availability[selectedTimerType] && expandedAccountId === account.id) {
+                          const firstAvailable = findFirstAvailable();
+                          setSelectedTimerType(firstAvailable);
+                        }
+                        
+                        return (
+                          <select 
+                            id={`timer-type-${account.id}`}
+                            value={selectedTimerType}
+                            onChange={(e) => setSelectedTimerType(e.target.value as TimerType)}
+                          >
+                            <option 
+                              value="mainBuilder"
+                              disabled={!availability.mainBuilder}
+                              className={!availability.mainBuilder ? 'disabled-option' : ''}
+                            >
+                              Main Village Builder {!availability.mainBuilder ? '(None Available)' : ''}
+                            </option>
+                            <option 
+                              value="mainLab"
+                              disabled={!availability.mainLab}
+                              className={!availability.mainLab ? 'disabled-option' : ''}
+                            >
+                              Main Village Lab {!availability.mainLab ? '(In Use)' : ''}
+                            </option>
+                            <option 
+                              value="builderBaseBuilder"
+                              disabled={!availability.builderBaseBuilder}
+                              className={!availability.builderBaseBuilder ? 'disabled-option' : ''}
+                            >
+                              Builder Base Builder {!availability.builderBaseBuilder ? '(None Available)' : ''}
+                            </option>
+                            <option 
+                              value="builderBaseLab"
+                              disabled={!availability.builderBaseLab}
+                              className={!availability.builderBaseLab ? 'disabled-option' : ''}
+                            >
+                              Builder Base Lab {!availability.builderBaseLab ? '(In Use)' : ''}
+                            </option>
+                          </select>
+                        );
+                      })()}
                     </div>
 
                     <div className="timer-duration">

@@ -438,6 +438,17 @@ body {
   background-color: white;
 }
 
+.timer-type-selection select option:disabled {
+  color: #999;
+  font-style: italic;
+  background-color: #f5f5f5;
+}
+
+.disabled-option {
+  color: #999 !important;
+  font-style: italic;
+}
+
 .timer-duration {
   margin-bottom: 1rem;
 }
