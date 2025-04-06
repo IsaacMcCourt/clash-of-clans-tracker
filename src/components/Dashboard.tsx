@@ -727,11 +727,21 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
 
   return (
     <div className="dashboard">
-      <div className="dashboard-header">
-        <h2>Your Accounts</h2>
+      <div className="promo-section">
+        <div className="promo-content">
+          <h2>Never Miss an Upgrade Again!</h2>
+          <p>
+            Stay on top of all your Clash of Clans upgrades across multiple accounts. Track builders and labs 
+            in both villages.
+          </p>
+        </div>
       </div>
 
       {accounts.length > 0 && <NextCompletionsSection />}
+
+      <div className="dashboard-header">
+        <h2>Your Accounts</h2>
+      </div>
 
       {accounts.length === 0 ? (
         <div className="no-accounts">
@@ -753,16 +763,18 @@ const Dashboard = ({ accounts, setAccounts }: DashboardProps) => {
                     </span>
                   </div>
                   <div className="stat">
-                    <span className="stat-label">Active Builder Base Builders:</span>
-                    <span className="stat-value">
-                      {account.builderBaseBuilders.filter(b => b.inUse).length} / {account.builderBaseBuilders.length}
-                    </span>
-                  </div>
-                  <div className="stat">
                     <span className="stat-label">Main Village Lab:</span>
                     <span className="stat-value">
                       {account.config?.hasMainVillageLab 
                         ? (account.mainVillageLab.inUse ? '1' : '0') + ' / 1'
+                        : 'Disabled'}
+                    </span>
+                  </div>
+                  <div className="stat">
+                    <span className="stat-label">Active Builder Base Builders:</span>
+                    <span className="stat-value">
+                      {account.config?.maxBuilderBaseBuilders > 0 
+                        ? `${account.builderBaseBuilders.filter(b => b.inUse).length} / ${account.builderBaseBuilders.length}`
                         : 'Disabled'}
                     </span>
                   </div>
