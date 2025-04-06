@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { formatRemainingTime } from './timeUtils';
+import { differenceInMinutes } from 'date-fns';
 
 /**
  * A custom hook that provides real-time timer updates for the given end time.
@@ -26,13 +27,29 @@ export const useRealTimeTimer = (endTimeIso: string | null): [string, boolean] =
       const now = new Date();
       const endTime = new Date(endTimeIso);
       setIsComplete(endTime <= now);
+      
+      // Check if we're in the last minute and need to update more frequently
+      return differenceInMinutes(endTime, now) <= 0;
     };
 
-    // Initial update
-    updateRemainingTime();
+    // Initial update and check if we need faster updates
+    const needsFastUpdates = updateRemainingTime();
 
-    // Set interval to update every 30 seconds
-    const interval = setInterval(updateRemainingTime, 30000);
+    // Set interval with dynamic refresh rate:
+    // - 1 second updates when under a minute
+    // - 30 second updates when more than a minute remains
+    const intervalTime = needsFastUpdates ? 1000 : 30000;
+    const interval = setInterval(() => {
+      // Check if we need to switch update frequency
+      const stillNeedsFastUpdates = updateRemainingTime();
+      
+      // If update frequency needs to change, clear and reset the interval
+      if (needsFastUpdates !== stillNeedsFastUpdates) {
+        clearInterval(interval);
+        const newIntervalTime = stillNeedsFastUpdates ? 1000 : 30000;
+        setInterval(updateRemainingTime, newIntervalTime);
+      }
+    }, intervalTime);
     
     // Clean up interval on unmount or when endTimeIso changes
     return () => clearInterval(interval);

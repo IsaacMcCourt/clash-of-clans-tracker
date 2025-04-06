@@ -1,7 +1,7 @@
-import { differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
+import { differenceInDays, differenceInHours, differenceInMinutes, differenceInSeconds } from 'date-fns';
 
 /**
- * Format the remaining time between now and the end time as "1d 2h 3m"
+ * Format the remaining time between now and the end time as "1d 2h 3m" or "3m 45s" when under a minute
  * @param endTimeIso ISO string of the end time
  * @returns Formatted time string or empty string if no end time
  */
@@ -17,11 +17,22 @@ export const formatRemainingTime = (endTimeIso: string | null): string => {
   const days = differenceInDays(endTime, now);
   const hoursLeft = differenceInHours(endTime, now) % 24;
   const minutesLeft = differenceInMinutes(endTime, now) % 60;
+  const secondsLeft = differenceInSeconds(endTime, now) % 60;
   
   let result = '';
   if (days > 0) result += `${days}d `;
   if (hoursLeft > 0 || days > 0) result += `${hoursLeft}h `;
-  result += `${minutesLeft}m`;
+  
+  // Show seconds only when we're in the last minute
+  if (days === 0 && hoursLeft === 0 && minutesLeft === 0) {
+    result += `${secondsLeft}s`;
+  } else {
+    result += `${minutesLeft}m`;
+    // Show seconds as well when minutes are 0 but we still have hours or days
+    if (minutesLeft === 0 && (days > 0 || hoursLeft > 0)) {
+      result += ` ${secondsLeft}s`;
+    }
+  }
   
   return result.trim();
 };
